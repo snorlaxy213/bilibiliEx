@@ -157,6 +157,7 @@ v0.3.19 把原来的 320px 小弹窗 + checkbox 单列列表，重构成居中�
 - **已开启源码同步，禁止在站点上直接改代码**（会被下次同步覆盖）；要改就改 `src/` 重新 build + push
 - 发布/更新表单会自动解析 `==UserScript==` 头：版本号、许可协议字段自动带出（disabled 状态），名称/简介取自 `@name`/`@description`，适用网站取自 `@match`
 - 脚本分类下拉当前返回空（`/api/v2/scripts/category?type=1` → `categories: []`），跳过即可，不阻塞提交
+- 脚本站「详细说明」与 README **解耦**（2026-10-07 起）：站内说明是用户向内容、手工维护；仅改说明/更新日志走 `/8294/update` 页「发布更新」即可，版本号不变（v0.3.19 实测）；源码同步的「说明同步地址」必须**保持为空**，否则同步会用 README 覆盖站内说明
 
 ### AI 代操作 ScriptCat 的技术实录（ZCode 内置浏览器）
 
@@ -164,6 +165,7 @@ v0.3.19 把原来的 320px 小弹窗 + checkbox 单列列表，重构成居中�
 - 代码编辑器是 **Monaco**：`locator.fill()` 会报「not an input/contenteditable」；改在页面上下文执行 `monaco.editor.getModels()[0].setValue(code)` 写入
 - 「详细说明」是 toastui 的 ProseMirror contenteditable：`locator.click()` 聚焦后用 `type()` 输入；「更新日志」是普通 `textarea.ant-input`：可直接 `fill()`
 - 点「创建脚本」后是 SPA 跳转到 `/zh-CN/script-show-page/<id>`，快照可能滞后于跳转，以 URL 变化为准，别当成提交失败重试
+- 「详细说明」的 toastui 编辑器连 Markdown 模式也是 ProseMirror 渲染：整体替换说明需先点该编辑器的「Markdown」标签，再在页面上下文执行 `pm.focus(); document.execCommand("selectAll"); pm.dispatchEvent(new ClipboardEvent("paste", {clipboardData}))`（DataTransfer 装 text/plain）；locator.press("Meta+V") 的可信键盘粘贴实测无效，React 受控输入 fill 会回弹
 
 ## 开发约定
 

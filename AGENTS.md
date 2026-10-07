@@ -1,6 +1,6 @@
 # AGENTS.md — bilibiliEx
 
-> 给后续接手的 AI Agent 看的项目说明。最后更新：v0.3.19（2026-10-07）。
+> 给后续接手的 AI Agent 看的项目说明。最后更新：v0.3.20（2026-10-07）。
 
 ## 项目定位
 
@@ -71,16 +71,32 @@ html[bx-<featureKey>] #some-element { display: none !important; }
 | 弹幕发送框面板 | `#chat-control-panel-vm` | **当前 B 图标主锚点** |
 | 弹幕流列表 | `#chat-items` | 弹幕过滤在此监听 |
 
-### 设置面板（v0.3.19 重写，对标 BewlyCat 视觉风格）
+### 设置面板（v0.3.19 重写，对标 BewlyCat 视觉风格；v0.3.20 调整页签与联动）
 
 v0.3.19 把原来的 320px 小弹窗 + checkbox 单列列表，重构成居中大模态设置窗（BewlyCat 风格）：
 
-- **布局**：左侧 180px 图标导航（页面净化/播放器/聊天区/增强/弹幕过滤 5 个页签）+ 右侧内容区；右上角圆形 × 关闭；半透明遮罩（点击关闭）
+- **布局**：左侧 180px 图标导航 + 右侧内容区；右上角圆形 × 关闭；半透明遮罩（点击关闭）
 - **配色**：浅灰底 `#f6f7f8`、白色卡片（圆角 12px）、强调色**蓝色** `#2f81f7`（开启态 toggle、按钮、输入框 focus），主文字 `#18191c`、描述灰 `#9499a0`
 - **组件**：iOS 风格 toggle（`.bx-toggle`，input:checked + 相邻 span 驱动）、两行设置项（`.bx-item-title` + `.bx-item-desc`）、分组标题在卡片外
 - **数据**：`purify/features.js` 与 `enhance/features.js` 每项新增 `desc` 字段（可空则只显示标题）；弹幕过滤单独成页（开关 + 关键词编辑 + 标签胶囊，样式随新色翻新）
 - **面板定位**：由原来「跟随 B 图标上方弹出」改为 CSS `left/top:50% + translate(-50%,-50%)` 居中，`placePanel()` 已移除；遮罩 + 面板在真全屏时仍挂进 `fullscreenElement` 内
 - **B 图标**：定位锚点级联逻辑、`bx-ctrl-item` 样式、油猴菜单入口均保持不变
+
+### 设置面板 v0.3.20 调整（2026-10-07）
+
+- **页签重排**：原 5 页（页面净化/播放器/聊天区/增强/弹幕过滤）改为 `快速使用`（置顶）→ 页面净化 → 播放器 → 聊天区 → 弹幕过滤；**「增强」页签移除**
+- **「快速使用」页**：收纳 `极简模式`（从页面净化页移出）+ `自动网页全屏` + `自动最高画质`（原增强页两项，group 改为 `快速使用`）
+- **极简模式锁定态**：极简模式(`zenMode`)开启时，被其 CSS 直接覆盖的 6 个单项——`hideHeadInfoTags`/`hideSidebar`/`hideSections`/`hideFlipView`/`hideFooter` + 播放器页的 `hideGiftBar`——在各自页签显示为**锁定态**（`.bx-locked`：整行置灰 opacity 0.55、toggle 强制显示开启、标题旁浅蓝徽标「极简模式」、点击即解锁=关闭极简模式）。覆盖清单定义在 `panel/index.js` 的 `ZEN_COVERS`
+- **实时刷新**：`settingsBus.emit` 现在携带 key（featureKey 或 `'filter'`）；面板打开时监听，`zenMode` 变化重绘 quick/purify/player 三页，其它 key 重绘 quick 页，`'filter'` 跳过（页内自处理），弹幕过滤输入框不被重绘清空
+- **上下等边距并入净化**：`frameGap` 独立开关删除；`enhance/index.js` 中 `runFrameGap` 改为跟随 `settings.get('hideFooter') || settings.get('zenMode')` 生效；`hideFooter` 的 `desc` 补充「并自动应用上下等边距贴合视口」
+- **旧数据**：`frameGap` 存储值作废（无害不清理）；升级后等边距随页脚（默认开）生效
+
+### 默认值调整 v0.3.21（2026-10-07）
+
+- 用户定稿的默认设置方案：**极简模式(`zenMode`) 默认开**；**自动网页全屏(`autoWebFullscreen`)、自动最高画质(`autoHighestQuality`) 默认关**。
+- 实际改动仅 2 处：`zenMode.defaultOn false→true`、`autoWebFullscreen.defaultOn true→false`；`autoHighestQuality` 维持 false 未动。
+- 其余全部净化/聊天区开关维持原有默认值（隐藏类 20 项默认开、头像整条隐藏/排行榜/大表情/粉丝牌/高亮底色/背景图改色等维持默认关）。
+- 注意：默认值只对全新安装/清空设置生效；已存 `bx_settings_v1` 的旧值不会被覆盖。
 
 ### 播放器实例 API
 
@@ -166,6 +182,8 @@ v0.3.19 把原来的 320px 小弹窗 + checkbox 单列列表，重构成居中�
 - 「详细说明」是 toastui 的 ProseMirror contenteditable：`locator.click()` 聚焦后用 `type()` 输入；「更新日志」是普通 `textarea.ant-input`：可直接 `fill()`
 - 点「创建脚本」后是 SPA 跳转到 `/zh-CN/script-show-page/<id>`，快照可能滞后于跳转，以 URL 变化为准，别当成提交失败重试
 - 「详细说明」的 toastui 编辑器连 Markdown 模式也是 ProseMirror 渲染：整体替换说明需先点该编辑器的「Markdown」标签，再在页面上下文执行 `pm.focus(); document.execCommand("selectAll"); pm.dispatchEvent(new ClipboardEvent("paste", {clipboardData}))`（DataTransfer 装 text/plain）；locator.press("Meta+V") 的可信键盘粘贴实测无效，React 受控输入 fill 会回弹
+- **站点 Markdown 渲染遵循 CommonMark：段落内单个换行会被合并成一行**。问答、图注这类「一行一行写」的内容必须行间空行拆段，否则线上全糊成一段（v0.3.19 说明页实测踩坑，2026-10-07 修复）
+- agent-browser（WorkBuddy 侧）默认 `--headless=new` 无头启动；`open --headed` 前必须先 `close --all` 清掉旧 daemon，否则复用无头实例；headed 实例可能存活数秒后被 daemon 回退成 headless 且导航丢失（`get url` 变 about:blank），重新 `open` 导航即可；有头模式 CDP 截图可能返回全黑帧，验证页面状态一律用 `eval` 读 DOM
 
 ## 开发约定
 

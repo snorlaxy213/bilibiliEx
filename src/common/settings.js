@@ -34,8 +34,9 @@ export const settingsBus = {
   on(cb) {
     listeners.push(cb);
   },
-  emit() {
-    listeners.forEach((cb) => cb());
+  // 携带变更 key 广播（旧回调忽略参数不受影响；'filter' 代表弹幕过滤配置变化）
+  emit(key) {
+    listeners.forEach((cb) => cb(key));
   },
 };
 
@@ -46,7 +47,7 @@ export const settings = {
   set(key, val) {
     cache.features[key] = val;
     save();
-    settingsBus.emit();
+    settingsBus.emit(key);
   },
   getFilter() {
     return { ...cache.filter };
@@ -54,6 +55,6 @@ export const settings = {
   setFilter(patch) {
     cache.filter = { ...cache.filter, ...patch };
     save();
-    settingsBus.emit();
+    settingsBus.emit('filter');
   },
 };

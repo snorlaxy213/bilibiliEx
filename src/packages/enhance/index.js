@@ -71,9 +71,19 @@ function retry(fn, intervalMs, timeoutMs, tag) {
 // ================= 自动网页全屏 =================
 
 // 主路径：B 站 app 源码原生支持 web_fullscreen=1 查询参数，播放器初始化时自动进入
+// 必须检查开关：关闭时不仅不主动写参数，还要把 URL 里遗留的 web_fullscreen=1 摘掉，
+// 否则关掉开关后刷新，残留参数仍会让 B 站播放器自动全屏
 function ensureUrlParam() {
   if (!/^\/\d+/.test(location.pathname)) return;
+  const enabled = settings.get('autoWebFullscreen', false);
   const params = new URLSearchParams(location.search);
+  if (!enabled) {
+    if (params.get('web_fullscreen') === '1') {
+      params.delete('web_fullscreen');
+      history.replaceState(null, '', location.pathname + (params.toString() ? '?' + params.toString() : '') + location.hash);
+    }
+    return;
+  }
   if (params.get('web_fullscreen') === '1') return;
   params.set('web_fullscreen', '1');
   history.replaceState(null, '', location.pathname + '?' + params.toString() + location.hash);
@@ -114,7 +124,7 @@ function tryWebFullscreen() {
 }
 
 function runAutoWebFullscreen(tag) {
-  if (!settings.get('autoWebFullscreen', true)) return;
+  if (!settings.get('autoWebFullscreen', false)) return;
   if (isWebFullscreen()) return;
   retry(() => tryWebFullscreen(), 1000, 20000, `自动网页全屏(${tag})`);
 }
@@ -174,6 +184,7 @@ function runAutoQuality(tag) {
 
 // 让内容区上下留白一致：量出「顶部导航栏底 ↔ 内容顶」这段间距，同样加到内容区底部，
 // 背景图铺满视口，底部露出的是背景图而非黑边。
+// v0.3.20：跟随「页面页脚(hideFooter)」或「极简模式(zenMode)」开关，不再单独提供增强设置。
 const FRAME_GAP_CSS = `
 /* 背景图固定铺满整个视口：内容区下方留白露出背景图而非页面黑底 */
 body:not(.pure_room_root, .player-full-win) .room-bg {
@@ -244,7 +255,9 @@ function runFrameGap() {
   };
 
   const apply = () => {
-    if (settings.get('frameGap', true)) start();
+    // v0.3.20 起等边距不再有独立开关：跟随「页面页脚」或「极简模式」（两者都会隐藏页脚）
+    const on = settings.get('hideFooter', true) || settings.get('zenMode', false);
+    if (on) start();
     else stop();
   };
 
@@ -258,7 +271,7 @@ export function initEnhance() {
   // 进房 URL 参数（document-start 阶段改写，播放器初始化时即可读到）
   ensureUrlParam();
 
-  // 上下等边距（独立于播放器初始化，进房即启用）
+  // 上下等边距（跟随页脚/极简模式开关，进房即生效）
   runFrameGap();
 
   onPlayerReady(() => {
@@ -277,7 +290,7 @@ export function initEnhance() {
 
   // 面板里手动开启时立即生效
   settingsBus.on(() => {
-    if (settings.get('autoWebFullscreen', true)) runAutoWebFullscreen('toggle');
+    if (settings.get('autoWebFullscreen', false)) runAutoWebFullscreen('toggle');
     if (settings.get('autoHighestQuality', false)) runAutoQuality('toggle');
   });
 

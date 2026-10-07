@@ -1,5 +1,5 @@
 import { injectCss } from '../../common/dom.js';
-import { settings } from '../../common/settings.js';
+import { settings, settingsBus } from '../../common/settings.js';
 import { FEATURES } from '../purify/index.js';
 import { ENHANCE_FEATURES } from '../enhance/features.js';
 import { PANEL_CSS } from './panel.css.js';
@@ -19,20 +19,25 @@ const NAV_ICONS = {
     '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9l5 3-5 3z"/></svg>',
   chat:
     '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5z"/></svg>',
-  enhance:
+  quick:
     '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg>',
   filter:
     '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M7 12h10M10 19h4"/></svg>',
 };
 
-// 页签定义：id / 名称 / 图标 / 分组列表。弹幕过滤单独一页。
+// 页签定义：id / 名称 / 图标 / 分组列表 / 可选底部提示。弹幕过滤单独一页。
+// v0.3.20：「快速使用」置顶（极简模式 + 进房自动化），原「增强」页签移除
 const TABS = [
+  { id: 'quick', label: '快速使用', icon: 'quick', groups: ['快速使用'], hint: '一键获得净化与自动化体验，细节可在各分类页调整。' },
   { id: 'purify', label: '页面净化', icon: 'purify', groups: ['页面净化'] },
   { id: 'player', label: '播放器', icon: 'player', groups: ['播放器'] },
   { id: 'chat', label: '聊天区', icon: 'chat', groups: ['聊天区'] },
-  { id: 'enhance', label: '增强', icon: 'enhance', groups: ['增强'] },
   { id: 'filter', label: '弹幕过滤', icon: 'filter', groups: [] },
 ];
+
+// 极简模式 CSS 直接覆盖的单项：极简模式开启时这些项实际已生效（含播放器页的礼物栏）
+const ZEN_KEY = 'zenMode';
+const ZEN_COVERS = ['hideHeadInfoTags', 'hideSidebar', 'hideSections', 'hideFlipView', 'hideFooter', 'hideGiftBar'];
 
 export function initPanel() {
   injectCss(PANEL_CSS);
@@ -111,10 +116,29 @@ export function initPanel() {
 
     const card = document.createElement('div');
     card.className = 'bx-card';
+
+    const zenOn = settings.get(ZEN_KEY, false);
     for (const f of allFeatures.filter((x) => x.group === group)) {
-      card.appendChild(buildToggleItem(f.key, f.label, f.desc, settings.get(f.key, f.defaultOn), (v) => settings.set(f.key, v)));
+      const locked = zenOn && ZEN_COVERS.includes(f.key);
+      const on = locked ? true : settings.get(f.key, f.defaultOn);
+      const item = buildToggleItem(f.key, f.label, f.desc, on, (v) => settings.set(f.key, v));
+      if (locked) {
+        item.classList.add('bx-locked');
+        item.setAttribute('title', '由「极简模式」包含，当前已生效');
+        // 点击即解锁：关闭极简模式，该项恢复自身存储状态，无需单独翻转
+        item.addEventListener('click', () => settings.set(ZEN_KEY, false));
+      }
+      card.appendChild(item);
     }
     container.appendChild(card);
+
+    const tab = TABS.find((t) => t.groups.includes(group));
+    if (tab && tab.hint) {
+      const h = document.createElement('div');
+      h.className = 'bx-hint';
+      h.textContent = tab.hint;
+      container.appendChild(h);
+    }
   };
 
   // ---------- 弹幕过滤页 ----------
@@ -216,14 +240,32 @@ export function initPanel() {
   };
 
   // ---------- 全部渲染 ----------
-  const render = () => {
-    for (const t of TABS) {
+  // renderTabId：指定页签全量重绘；不传则重绘全部（打开面板时用）
+  const render = (tabId) => {
+    const targets = tabId ? TABS.filter((t) => t.id === tabId) : TABS;
+    for (const t of targets) {
       const el = contentEls[t.id];
       el.innerHTML = '';
       if (t.id === 'filter') renderFilterTab(el);
       else for (const g of t.groups) renderFeatureGroup(el, g);
     }
   };
+
+  // 面板打开时，功能开关变化驱动相关页签实时刷新（不碰弹幕过滤输入框）
+  settingsBus.on((key) => {
+    if (!panel.classList.contains('bx-open')) return;
+    if (key === ZEN_KEY) {
+      // 极简模式影响：快速使用页自身 + 页面净化页 + 播放器页（礼物栏）
+      render('quick');
+      render('purify');
+      render('player');
+    } else if (key === 'filter') {
+      // 弹幕过滤变化由页内局部逻辑处理，这里不重绘
+      return;
+    } else {
+      render('quick');
+    }
+  });
 
   // ---------- 开 / 关 ----------
   const openPanel = () => {
@@ -331,8 +373,8 @@ export function initPanel() {
   }
 }
 
-// 构建单个 toggle 设置项（标题 + 描述 + iOS 开关）
-function buildToggleItem(key, label, desc, checked, onChange) {
+// 构建单个 toggle 设置项（标题 + 描述 + iOS 开关）；locked 时在标题旁加「极简模式」徽标
+function buildToggleItem(key, label, desc, checked, onChange, locked) {
   const item = document.createElement('label');
   item.className = 'bx-item';
 
@@ -340,7 +382,15 @@ function buildToggleItem(key, label, desc, checked, onChange) {
   text.className = 'bx-item-text';
   const t = document.createElement('div');
   t.className = 'bx-item-title';
-  t.textContent = label;
+  const tl = document.createElement('span');
+  tl.textContent = label;
+  t.appendChild(tl);
+  if (locked) {
+    const badge = document.createElement('span');
+    badge.className = 'bx-lock-badge';
+    badge.textContent = '极简模式';
+    t.appendChild(badge);
+  }
   text.appendChild(t);
   if (desc) {
     const d = document.createElement('div');

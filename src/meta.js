@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BiliEx - B站直播间净化增强
 // @namespace    https://github.com/snorlaxy213/bilibiliEx
-// @version      0.3.19
+// @version      0.3.22
 // @description  仿 DouyuEx 思路：净化 B 站直播间页面，只留播放器与右侧弹幕流；悬浮球设置面板；弹幕关键词过滤（标签式编辑）
 // @author       Jules.chen
 // @license      MIT

@@ -3,11 +3,11 @@
 export const FEATURES = [
   // ================= 页面净化 =================
   {
-    group: '页面净化',
+    group: '快速使用',
     key: 'zenMode',
     label: '极简模式',
     desc: '一键隐藏页面周边元素，只留播放器与弹幕流',
-    defaultOn: false,
+    defaultOn: true,
     css: `
 html[bx-zenMode] #sections-vm,
 html[bx-zenMode] #sidebar-vm,
@@ -87,7 +87,7 @@ html[bx-hideFlipView] .flip-view { display: none !important; }
     group: '页面净化',
     key: 'hideFooter',
     label: '页面页脚（关于我们/备案信息）',
-    desc: '隐藏页面底部的关于我们与备案信息',
+    desc: '隐藏页面底部关于我们与备案信息，并自动应用上下等边距贴合视口',
     defaultOn: true,
     css: `
 html[bx-hideFooter] #link-footer-vm,

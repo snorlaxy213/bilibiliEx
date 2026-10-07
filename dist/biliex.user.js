@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BiliEx - B站直播间净化增强
 // @namespace    https://github.com/snorlaxy213/bilibiliEx
-// @version      0.3.19
+// @version      0.3.22
 // @description  仿 DouyuEx 思路：净化 B 站直播间页面，只留播放器与右侧弹幕流；悬浮球设置面板；弹幕关键词过滤（标签式编辑）
 // @author       Jules.chen
 // @license      MIT
@@ -68,8 +68,9 @@
     on(cb) {
       listeners.push(cb);
     },
-    emit() {
-      listeners.forEach((cb) => cb());
+    // 携带变更 key 广播（旧回调忽略参数不受影响；'filter' 代表弹幕过滤配置变化）
+    emit(key) {
+      listeners.forEach((cb) => cb(key));
     }
   };
   var settings = {
@@ -79,7 +80,7 @@
     set(key, val) {
       cache.features[key] = val;
       save();
-      settingsBus.emit();
+      settingsBus.emit(key);
     },
     getFilter() {
       return { ...cache.filter };
@@ -87,7 +88,7 @@
     setFilter(patch) {
       cache.filter = { ...cache.filter, ...patch };
       save();
-      settingsBus.emit();
+      settingsBus.emit("filter");
     }
   };
 
@@ -95,11 +96,11 @@
   var FEATURES = [
     // ================= 页面净化 =================
     {
-      group: "页面净化",
+      group: "快速使用",
       key: "zenMode",
       label: "极简模式",
       desc: "一键隐藏页面周边元素，只留播放器与弹幕流",
-      defaultOn: false,
+      defaultOn: true,
       css: `
 html[bx-zenMode] #sections-vm,
 html[bx-zenMode] #sidebar-vm,
@@ -179,7 +180,7 @@ html[bx-hideFlipView] .flip-view { display: none !important; }
       group: "页面净化",
       key: "hideFooter",
       label: "页面页脚（关于我们/备案信息）",
-      desc: "隐藏页面底部的关于我们与备案信息",
+      desc: "隐藏页面底部关于我们与备案信息，并自动应用上下等边距贴合视口",
       defaultOn: true,
       css: `
 html[bx-hideFooter] #link-footer-vm,
@@ -473,25 +474,18 @@ html[bx-hideControlPanel] .chat-history-panel {
   // src/packages/enhance/features.js
   var ENHANCE_FEATURES = [
     {
-      group: "增强",
+      group: "快速使用",
       key: "autoWebFullscreen",
       label: "自动网页全屏（进房即全屏）",
       desc: "进入直播间后自动切换为网页全屏",
-      defaultOn: true
+      defaultOn: false
     },
     {
-      group: "增强",
+      group: "快速使用",
       key: "autoHighestQuality",
       label: "自动最高画质（受登录/大会员限制）",
       desc: "自动切换到当前可用的最高画质",
       defaultOn: false
-    },
-    {
-      group: "增强",
-      key: "frameGap",
-      label: "上下等边距（自动贴合视口）",
-      desc: "自动调整播放器上下边距以贴合视口",
-      defaultOn: true
     }
   ];
 
@@ -667,6 +661,31 @@ html[bx-hideControlPanel] .chat-history-panel {
 .bx-item input:checked + .bx-toggle { background: #2f81f7; }
 .bx-item input:checked + .bx-toggle::after { transform: translateX(17px); }
 
+/* 极简模式锁定态：整行置灰、光标提示、toggle 强制显示开启 */
+.bx-item.bx-locked {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.bx-item.bx-locked .bx-item-title { color: #61666d; }
+.bx-item.bx-locked input:not(:checked) + .bx-toggle { background: #2f81f7; }
+.bx-item.bx-locked input:not(:checked) + .bx-toggle::after { transform: translateX(17px); }
+
+/* 「极简模式」徽标 */
+.bx-lock-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 8px;
+  height: 18px;
+  line-height: 18px;
+  font-size: 11px;
+  font-weight: 400;
+  color: #185fa5;
+  background: #e6f1fb;
+  border: 1px solid #b5d4f4;
+  border-radius: 9px;
+  vertical-align: 1px;
+}
+
 /* 弹幕过滤编辑区 */
 .bx-filter-row {
   display: flex;
@@ -744,16 +763,18 @@ html[bx-hideControlPanel] .chat-history-panel {
     purify: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>',
     player: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9l5 3-5 3z"/></svg>',
     chat: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5z"/></svg>',
-    enhance: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg>',
+    quick: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg>',
     filter: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M7 12h10M10 19h4"/></svg>'
   };
   var TABS = [
+    { id: "quick", label: "快速使用", icon: "quick", groups: ["快速使用"], hint: "一键获得净化与自动化体验，细节可在各分类页调整。" },
     { id: "purify", label: "页面净化", icon: "purify", groups: ["页面净化"] },
     { id: "player", label: "播放器", icon: "player", groups: ["播放器"] },
     { id: "chat", label: "聊天区", icon: "chat", groups: ["聊天区"] },
-    { id: "enhance", label: "增强", icon: "enhance", groups: ["增强"] },
     { id: "filter", label: "弹幕过滤", icon: "filter", groups: [] }
   ];
+  var ZEN_KEY = "zenMode";
+  var ZEN_COVERS = ["hideHeadInfoTags", "hideSidebar", "hideSections", "hideFlipView", "hideFooter", "hideGiftBar"];
   function initPanel() {
     injectCss(PANEL_CSS);
     const overlay = document.createElement("div");
@@ -814,10 +835,26 @@ html[bx-hideControlPanel] .chat-history-panel {
       container.appendChild(gt);
       const card = document.createElement("div");
       card.className = "bx-card";
+      const zenOn = settings.get(ZEN_KEY, false);
       for (const f of allFeatures.filter((x) => x.group === group)) {
-        card.appendChild(buildToggleItem(f.key, f.label, f.desc, settings.get(f.key, f.defaultOn), (v) => settings.set(f.key, v)));
+        const locked = zenOn && ZEN_COVERS.includes(f.key);
+        const on = locked ? true : settings.get(f.key, f.defaultOn);
+        const item = buildToggleItem(f.key, f.label, f.desc, on, (v) => settings.set(f.key, v));
+        if (locked) {
+          item.classList.add("bx-locked");
+          item.setAttribute("title", "由「极简模式」包含，当前已生效");
+          item.addEventListener("click", () => settings.set(ZEN_KEY, false));
+        }
+        card.appendChild(item);
       }
       container.appendChild(card);
+      const tab = TABS.find((t) => t.groups.includes(group));
+      if (tab && tab.hint) {
+        const h = document.createElement("div");
+        h.className = "bx-hint";
+        h.textContent = tab.hint;
+        container.appendChild(h);
+      }
     };
     const renderFilterTab = (container) => {
       const gt = document.createElement("div");
@@ -899,14 +936,27 @@ html[bx-hideControlPanel] .chat-history-panel {
       input.addEventListener("input", () => input.classList.remove("bx-dup"));
       renderTags();
     };
-    const render = () => {
-      for (const t of TABS) {
+    const render = (tabId) => {
+      const targets = tabId ? TABS.filter((t) => t.id === tabId) : TABS;
+      for (const t of targets) {
         const el = contentEls[t.id];
         el.innerHTML = "";
         if (t.id === "filter") renderFilterTab(el);
         else for (const g of t.groups) renderFeatureGroup(el, g);
       }
     };
+    settingsBus.on((key) => {
+      if (!panel.classList.contains("bx-open")) return;
+      if (key === ZEN_KEY) {
+        render("quick");
+        render("purify");
+        render("player");
+      } else if (key === "filter") {
+        return;
+      } else {
+        render("quick");
+      }
+    });
     const openPanel = () => {
       render();
       ensurePanelParent();
@@ -993,14 +1043,22 @@ html[bx-hideControlPanel] .chat-history-panel {
       GM_registerMenuCommand("打开 BiliEx 设置", openPanel);
     }
   }
-  function buildToggleItem(key, label, desc, checked, onChange) {
+  function buildToggleItem(key, label, desc, checked, onChange, locked) {
     const item = document.createElement("label");
     item.className = "bx-item";
     const text = document.createElement("div");
     text.className = "bx-item-text";
     const t = document.createElement("div");
     t.className = "bx-item-title";
-    t.textContent = label;
+    const tl = document.createElement("span");
+    tl.textContent = label;
+    t.appendChild(tl);
+    if (locked) {
+      const badge = document.createElement("span");
+      badge.className = "bx-lock-badge";
+      badge.textContent = "极简模式";
+      t.appendChild(badge);
+    }
     text.appendChild(t);
     if (desc) {
       const d = document.createElement("div");
@@ -1127,7 +1185,15 @@ html[bx-hideControlPanel] .chat-history-panel {
   }
   function ensureUrlParam() {
     if (!/^\/\d+/.test(location.pathname)) return;
+    const enabled = settings.get("autoWebFullscreen", false);
     const params = new URLSearchParams(location.search);
+    if (!enabled) {
+      if (params.get("web_fullscreen") === "1") {
+        params.delete("web_fullscreen");
+        history.replaceState(null, "", location.pathname + (params.toString() ? "?" + params.toString() : "") + location.hash);
+      }
+      return;
+    }
     if (params.get("web_fullscreen") === "1") return;
     params.set("web_fullscreen", "1");
     history.replaceState(null, "", location.pathname + "?" + params.toString() + location.hash);
@@ -1163,7 +1229,7 @@ html[bx-hideControlPanel] .chat-history-panel {
     return clickWebFsButton();
   }
   function runAutoWebFullscreen(tag) {
-    if (!settings.get("autoWebFullscreen", true)) return;
+    if (!settings.get("autoWebFullscreen", false)) return;
     if (isWebFullscreen()) return;
     retry(() => tryWebFullscreen(), 1e3, 2e4, `自动网页全屏(${tag})`);
   }
@@ -1276,7 +1342,8 @@ body:not(.pure_room_root):not(.player-full-win) .live-room-app .app-content .app
       }, 500);
     };
     const apply = () => {
-      if (settings.get("frameGap", true)) start();
+      const on = settings.get("hideFooter", true) || settings.get("zenMode", false);
+      if (on) start();
       else stop();
     };
     apply();
@@ -1298,7 +1365,7 @@ body:not(.pure_room_root):not(.player-full-win) .live-room-app .app-content .app
     });
     setInterval(checkRoom, 1e3);
     settingsBus.on(() => {
-      if (settings.get("autoWebFullscreen", true)) runAutoWebFullscreen("toggle");
+      if (settings.get("autoWebFullscreen", false)) runAutoWebFullscreen("toggle");
       if (settings.get("autoHighestQuality", false)) runAutoQuality("toggle");
     });
     window.__BiliExDebugQuality = () => applyHighestQuality();

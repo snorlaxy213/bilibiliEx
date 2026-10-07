@@ -169,6 +169,31 @@ export const PANEL_CSS = `
 .bx-item input:checked + .bx-toggle { background: #2f81f7; }
 .bx-item input:checked + .bx-toggle::after { transform: translateX(17px); }
 
+/* 极简模式锁定态：整行置灰、光标提示、toggle 强制显示开启 */
+.bx-item.bx-locked {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.bx-item.bx-locked .bx-item-title { color: #61666d; }
+.bx-item.bx-locked input:not(:checked) + .bx-toggle { background: #2f81f7; }
+.bx-item.bx-locked input:not(:checked) + .bx-toggle::after { transform: translateX(17px); }
+
+/* 「极简模式」徽标 */
+.bx-lock-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 8px;
+  height: 18px;
+  line-height: 18px;
+  font-size: 11px;
+  font-weight: 400;
+  color: #185fa5;
+  background: #e6f1fb;
+  border: 1px solid #b5d4f4;
+  border-radius: 9px;
+  vertical-align: 1px;
+}
+
 /* 弹幕过滤编辑区 */
 .bx-filter-row {
   display: flex;

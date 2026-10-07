@@ -126,6 +126,45 @@ v0.3.19 把原来的 320px 小弹窗 + checkbox 单列列表，重构成居中�
 - 安装页 URL：`http://127.0.0.1:8787/biliex.user.js`（仅本机访问）
 - 服务启停：后台任务，用户确认装好后需手动停掉
 
+## 发布与分发流程（v0.3.19 起固化）
+
+> v0.3.19 已完成 GitHub 推送与 ScriptCat 上架，以后发版照本节执行，新会话无需重新摸索。
+
+### 分发渠道总表
+
+| 渠道 | 地址 | 状态 |
+|---|---|---|
+| GitHub 主仓库 | https://github.com/snorlaxy213/bilibiliEx | ✅ gh CLI 已登录该账号；`dist/biliex.user.js` 已入库（`git add -f` 单独纳入，见 .gitignore 注释） |
+| ScriptCat 脚本站 | https://scriptcat.org/zh-CN/script-show-page/8294 | ✅ 已上架（脚本 ID **8294**），**已配置源码自动同步** |
+| jsDelivr 镜像 | `https://cdn.jsdelivr.net/gh/snorlaxy213/bilibiliEx@main/dist/biliex.user.js` | ✅ 国内可达的自装直链；`@main` 分支引用有最长 12h CDN 缓存，急发更新改用版本 tag |
+| Greasy Fork | — | ⏳ 未上架：本机网络不可达 greasyfork.org（curl 超时、DNS 疑似污染、系统无代理），网络通了补上架后回填本节 |
+| GitHub raw 直链 | `https://raw.githubusercontent.com/snorlaxy213/bilibiliEx/main/dist/biliex.user.js` | ⚠️ 本机直连被墙（**别用它安装**），但脚本猫服务器可正常拉取 |
+
+### 标准发版流程
+
+1. 改代码 → 升 `src/meta.js` 的 `@version`
+2. `node build.js && node --check dist/biliex.user.js`
+3. `git add -A && git commit && git push`（`dist/biliex.user.js` 已被跟踪，无需再 `-f`）
+4. ScriptCat 源码同步是**自动模式**（定期检查 + 支持 Webhook），push 后站点自动跟进新版本；急用可到「脚本管理 → 源代码同步」点「保存并同步一次」手动触发
+5. 用户端油猴以各安装链接为更新源，自动收到新版本提示
+6. 可选验证：`curl -s <ScriptCat 安装直链> | diff - dist/biliex.user.js && echo OK`
+
+### ScriptCat 站点操作要点
+
+- 安装直链（以 `.user.js` 结尾，油猴自动接管）：
+  `https://scriptcat.org/scripts/code/8294/BiliEx%20-%20B站直播间净化增强.user.js`
+- 站内路径：公开页 `/zh-CN/script-show-page/8294`；管理页 `.../8294/manage`（源代码同步）、`.../8294/update`（手动更新脚本）、`.../8294/version`（版本列表）
+- **已开启源码同步，禁止在站点上直接改代码**（会被下次同步覆盖）；要改就改 `src/` 重新 build + push
+- 发布/更新表单会自动解析 `==UserScript==` 头：版本号、许可协议字段自动带出（disabled 状态），名称/简介取自 `@name`/`@description`，适用网站取自 `@match`
+- 脚本分类下拉当前返回空（`/api/v2/scripts/category?type=1` → `categories: []`），跳过即可，不阻塞提交
+
+### AI 代操作 ScriptCat 的技术实录（ZCode 内置浏览器）
+
+- ZCode 内置浏览器与夸克浏览器登录态**不共享**：首次需用户在内置浏览器登录 scriptcat.org（支持账号密码 / GitHub / 通行密钥 / 论坛 QQ）
+- 代码编辑器是 **Monaco**：`locator.fill()` 会报「not an input/contenteditable」；改在页面上下文执行 `monaco.editor.getModels()[0].setValue(code)` 写入
+- 「详细说明」是 toastui 的 ProseMirror contenteditable：`locator.click()` 聚焦后用 `type()` 输入；「更新日志」是普通 `textarea.ant-input`：可直接 `fill()`
+- 点「创建脚本」后是 SPA 跳转到 `/zh-CN/script-show-page/<id>`，快照可能滞后于跳转，以 URL 变化为准，别当成提交失败重试
+
 ## 开发约定
 
 - 改代码后必须执行：`node build.js && node --check dist/biliex.user.js`

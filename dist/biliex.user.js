@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BiliEx - B站直播间净化增强
 // @namespace    https://github.com/snorlaxy213/bilibiliEx
-// @version      0.3.22
+// @version      0.3.23
 // @description  仿 DouyuEx 思路：净化 B 站直播间页面，只留播放器与右侧弹幕流；悬浮球设置面板；弹幕关键词过滤（标签式编辑）
 // @author       Jules.chen
 // @license      MIT
@@ -1129,6 +1129,7 @@ html[bx-hideControlPanel] .chat-history-panel {
 
   // src/packages/enhance/index.js
   var log = (...a) => console.log("[BiliEx]", ...a);
+  var mutatingUrl = false;
   function watchRoomChange(onChange) {
     const getRoom = () => (location.pathname.match(/^\/(\d+)/) || [])[1] || null;
     let cur = getRoom();
@@ -1136,7 +1137,7 @@ html[bx-hideControlPanel] .chat-history-panel {
       const orig = history[name];
       history[name] = function(...args) {
         const r = orig.apply(this, args);
-        setTimeout(onChange, 0);
+        if (!mutatingUrl) setTimeout(onChange, 0);
         return r;
       };
     };
@@ -1190,13 +1191,17 @@ html[bx-hideControlPanel] .chat-history-panel {
     if (!enabled) {
       if (params.get("web_fullscreen") === "1") {
         params.delete("web_fullscreen");
+        mutatingUrl = true;
         history.replaceState(null, "", location.pathname + (params.toString() ? "?" + params.toString() : "") + location.hash);
+        mutatingUrl = false;
       }
       return;
     }
     if (params.get("web_fullscreen") === "1") return;
     params.set("web_fullscreen", "1");
+    mutatingUrl = true;
     history.replaceState(null, "", location.pathname + "?" + params.toString() + location.hash);
+    mutatingUrl = false;
   }
   function isWebFullscreen() {
     return document.body.classList.contains("player-full-win");

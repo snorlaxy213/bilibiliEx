@@ -4,6 +4,10 @@ import { ENHANCE_FEATURES } from './features.js';
 
 const log = (...a) => console.log('[BiliEx]', ...a);
 
+// 重入保护：脚本自己改写 URL（ensureUrlParam 里的 replaceState）时置位，
+// 让 watchRoomChange 劫持的 history.replaceState 不触发 onChange，避免「摘/写参数」自激循环
+let mutatingUrl = false;
+
 // ================= 通用工具 =================
 
 // 房间号变化监听（B 站直播间是 SPA 路由）
@@ -14,7 +18,8 @@ function watchRoomChange(onChange) {
     const orig = history[name];
     history[name] = function (...args) {
       const r = orig.apply(this, args);
-      setTimeout(onChange, 0);
+      // 脚本自己改 URL（如摘/写 web_fullscreen 参数）不触发房间变化检测，避免自激
+      if (!mutatingUrl) setTimeout(onChange, 0);
       return r;
     };
   };
@@ -80,13 +85,17 @@ function ensureUrlParam() {
   if (!enabled) {
     if (params.get('web_fullscreen') === '1') {
       params.delete('web_fullscreen');
+      mutatingUrl = true;
       history.replaceState(null, '', location.pathname + (params.toString() ? '?' + params.toString() : '') + location.hash);
+      mutatingUrl = false;
     }
     return;
   }
   if (params.get('web_fullscreen') === '1') return;
   params.set('web_fullscreen', '1');
+  mutatingUrl = true;
   history.replaceState(null, '', location.pathname + '?' + params.toString() + location.hash);
+  mutatingUrl = false;
 }
 
 // 网页全屏态：B 站在 body 上挂 player-full-win class

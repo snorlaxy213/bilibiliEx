@@ -1,6 +1,6 @@
 # AGENTS.md — bilibiliEx
 
-> 给后续接手的 AI Agent 看的项目说明。最后更新：v0.3.3（2026-10-07）。
+> 给后续接手的 AI Agent 看的项目说明。最后更新：v0.3.19（2026-10-07）。
 
 ## 项目定位
 
@@ -70,6 +70,17 @@ html[bx-<featureKey>] #some-element { display: none !important; }
 | 右侧聊天面板 | `#aside-area-vm` | 稳定 |
 | 弹幕发送框面板 | `#chat-control-panel-vm` | **当前 B 图标主锚点** |
 | 弹幕流列表 | `#chat-items` | 弹幕过滤在此监听 |
+
+### 设置面板（v0.3.19 重写，对标 BewlyCat 视觉风格）
+
+v0.3.19 把原来的 320px 小弹窗 + checkbox 单列列表，重构成居中大模态设置窗（BewlyCat 风格）：
+
+- **布局**：左侧 180px 图标导航（页面净化/播放器/聊天区/增强/弹幕过滤 5 个页签）+ 右侧内容区；右上角圆形 × 关闭；半透明遮罩（点击关闭）
+- **配色**：浅灰底 `#f6f7f8`、白色卡片（圆角 12px）、强调色**蓝色** `#2f81f7`（开启态 toggle、按钮、输入框 focus），主文字 `#18191c`、描述灰 `#9499a0`
+- **组件**：iOS 风格 toggle（`.bx-toggle`，input:checked + 相邻 span 驱动）、两行设置项（`.bx-item-title` + `.bx-item-desc`）、分组标题在卡片外
+- **数据**：`purify/features.js` 与 `enhance/features.js` 每项新增 `desc` 字段（可空则只显示标题）；弹幕过滤单独成页（开关 + 关键词编辑 + 标签胶囊，样式随新色翻新）
+- **面板定位**：由原来「跟随 B 图标上方弹出」改为 CSS `left/top:50% + translate(-50%,-50%)` 居中，`placePanel()` 已移除；遮罩 + 面板在真全屏时仍挂进 `fullscreenElement` 内
+- **B 图标**：定位锚点级联逻辑、`bx-ctrl-item` 样式、油猴菜单入口均保持不变
 
 ### 播放器实例 API
 

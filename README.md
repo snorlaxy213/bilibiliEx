@@ -84,6 +84,33 @@ npm run build
 
 然后把 `dist/biliex.user.js` 重新粘贴到 Tampermonkey 即可（或用 Tampermonkey 的「文件→导入」）。
 
+## 上架分发
+
+脚本可上架到以下平台，供他人一键安装 / 更新：
+
+### Greasy Fork（首选）
+- 网址：<https://greasyfork.org>
+- 中文用户最多、免费、支持版本管理与自动更新，推荐作为主渠道
+- 上传入口：登录 → 右上角「提交脚本」→ 直接粘贴 `dist/biliex.user.js` 内容即可（无需本地构建之外的额外配置）
+- 需补充的元信息（已在本项目内备好）：
+  - 脚本名：`BiliEx - B站直播间净化增强`
+  - 简介：见 `src/meta.js` 的 `@description`
+  - 许可：MIT（`@license` 已写入脚本头）
+  - 图标：已备好 —— `assets/icon.png`（128×128 小熊图），且已内嵌到脚本头 `@icon`（data URI），GF 会上传时读取；如需在 GF 后台单独再传，用同一张即可
+- 合规注意：GF 要求脚本代码**不得混淆**、不得强制引流 / 加广告、不得涉及侵权 / 盗版。本项目源码结构清晰、IIFE 单文件、仅做显示层净化，符合要求
+
+### GitHub 仓库（配合）
+- 把本仓库推到 GitHub 公开仓库（账号：`snorlaxy213`）
+- 利用油猴的 URL 拦截特性，`raw.githubusercontent.com/.../biliex.user.js` 直链可一键弹出安装 / 更新页
+- 脚本头中的 `@namespace` / `@homepageURL` / `@supportURL` 已指向 `github.com/snorlaxy213/bilibiliEx`，推送后请核对仓库名与地址一致
+- 脚本图标：`assets/icon.png`（128×128），已以 data URI 形式内嵌到脚本头 `@icon`，不依赖外部托管
+
+### 其他可选渠道
+- **OpenUserJS**（<https://openuserjs.org>）：开发者向，支持 GitHub 仓库 Webhook 自动同步
+- **Gitee / 静态托管**：国内访问更稳，可把产物发布成稳定 `.user.js` 直链（Gitee Pages 需实名审核）
+
+> 提示：本地自托管方案（`dist` 起 HTTP 服务 + 浏览器打开 `.user.js`）仍可用于自用升级，见上文「安装」章节。
+
 ## 已知边界
 
 - B 站直播间 DOM 改版可能导致个别选择器失效，届时更新 `features.js` 中对应规则即可（优先去线上播放器 JS 包反查新结构）

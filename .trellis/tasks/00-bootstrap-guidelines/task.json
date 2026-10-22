@@ -21,8 +21,8 @@
   "children": [],
   "parent": null,
   "relatedFiles": [
-    ".trellis/spec/frontend/"
+    ".trellis/spec/userscript/"
   ],
-  "notes": "First-time setup task created by trellis init (frontend project)",
+  "notes": "First-time setup task created by trellis init. Bootstrap rewrote the React-oriented frontend templates into a userscript layer derived from real source files.",
   "meta": {}
 }

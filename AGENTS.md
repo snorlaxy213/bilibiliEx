@@ -198,3 +198,33 @@ v0.3.19 把原来的 320px 小弹窗 + checkbox 单列列表，重构成居中�
 - 未登录/非大会员时最高画质受 B 站限制，脚本只在可用画质列表里选最高，不会报错
 - B 站改版可能让个别选择器失效，改 `features.js` 重 build 即可修
 - 自动化浏览器取证（agent-browser + Chromium）在国内网络下下载常超时失败，改走 JS 包反查路线
+
+<!-- TRELLIS:START -->
+# Trellis Instructions
+
+These instructions are for AI assistants working in this project.
+
+This project is managed by Trellis. The working knowledge you need lives under `.trellis/`:
+
+- `.trellis/workflow.md` — development phases, when to create tasks, skill routing
+- `.trellis/spec/` — package- and layer-scoped coding guidelines (read before writing code in a given layer)
+- `.trellis/workspace/` — per-developer journals and session traces
+- `.trellis/tasks/` — active and archived tasks (PRDs, research, jsonl context)
+
+If a Trellis command is available on your platform (e.g. `/trellis:finish-work`, `/trellis:continue`), prefer it over manual steps. Not every platform exposes every command.
+
+If you're using Codex or another agent-capable tool, additional project-scoped helpers may live in:
+- `.agents/skills/` — reusable Trellis skills
+- `.codex/agents/` — optional custom subagents
+
+## Session start
+
+If your platform does not inject session context automatically (WorkBuddy, for example), run `python3 .trellis/scripts/get_context.py` once at the start of a session to load developer identity, git state and the active task.
+
+## Available skills
+
+`trellis-brainstorm`, `trellis-before-dev`, `trellis-check`, `trellis-update-spec`, `trellis-break-loop`, `trellis-spec-bootstrap`, `trellis-finish-work`, `trellis-continue`, `trellis-session-insight`, `trellis-meta`, `trellis-channel`. Trigger them by intent (for example "check this diff against our specs"); platforms without command support do not need a slash command.
+
+Managed by Trellis. Edits outside this block are preserved; edits inside may be overwritten by a future `trellis update`.
+
+<!-- TRELLIS:END -->
